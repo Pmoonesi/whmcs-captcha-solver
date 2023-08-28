@@ -1,10 +1,18 @@
 import os
+import string
+import json
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.background import BackgroundTasks
 import uvicorn
+from dotenv import load_dotenv
 
-from typing import Annotated
+load_dotenv()
+
+try:
+    from typing_extensions import Annotated
+except ImportError:
+    from typing import Annotated
 
 from fastapi import FastAPI, File, UploadFile
 
@@ -23,15 +31,31 @@ def remove_file(path: str) -> None:
     os.unlink(path)
 
 #Target image data size
-img_width = 100
-img_height = 24
+img_width = int(os.getenv('CAPTCHA_WIDTH', '100'))
+img_height = int(os.getenv('CAPTCHA_HEIGHT', '24'))
 # Target image label length
-max_length = 5
+max_length = int(os.getenv('CAPTCHA_CHARS', '5'))
+
+characters = set()
+char_mode = int(os.getenv('CHAR_MODE', '2'))
+
+if char_mode >= 1:
+    characters = characters.union(map(chr, range(48, 58)))
+
+if char_mode >= 2:
+    characters = characters.union(map(chr, range(65, 91)))
+
+if char_mode >= 3:
+    characters = characters.union(map(chr, range(97, 123)))
+
+# Characters to omit
+exclude = set(json.loads(os.getenv('CHAR_EXCLUDE', '["0", "O"]')))
+
 # Target image label component
-characters = {'1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'}
+characters = characters - exclude
 
 # Model weight file path
-weights_path = "./model/weights.h5"
+weights_path = os.getenv('WEIGHTS_PATH', "./model/weights.h5")
 
 AM = None
 
@@ -63,4 +87,4 @@ def solve_captcha(file: Annotated[bytes, File()], background_tasks: BackgroundTa
     return {"result": pred}
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host='localhost', port=8008, log_level="info", reload=True)
+    uvicorn.run("main:app", host=os.getenv('HOST', '0.0.0.0'), port=int(os.getenv('PORT', '8008')), log_level="info", reload=True)

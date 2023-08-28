@@ -1,5 +1,7 @@
 fastapi==0.95.2
 uvicorn==0.22.0
-numpy==1.19.5
-tensorflow==2.5.0
+numpy
 CaptchaCracker
+Pillow
+python-multipart
+python-dotenv
